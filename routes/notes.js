@@ -1,6 +1,7 @@
 const notes = require('express').Router();
 const fs = require('fs');
 const uuid = require('uuid');
+const readAndDelete = require('../middlewarehelpers/fsUtils').readAndDelete;
 
 notes.get('/', function(req, res) {
     fs.readFile('./db/db.json', 'utf8', (err, data) => {
@@ -16,8 +17,10 @@ notes.post('/', (req, res) => {
         const newNote = {
             title,
             text,
-            "id": uuid,
         };
+        //push uuid to newNote
+        newNote.id = uuid.v4();
+        //push newNote to db.json
 
         fs.readFile('./db/db.json', 'utf8', (err, data) => {
             if (err) {
@@ -41,23 +44,15 @@ notes.post('/', (req, res) => {
     }
 });
 
-notes.delete('/:id', function(req, res) {
-    const id = req.params.id;
-
-    fs.readFile('./db/db.json', 'utf8', (err, data) => {
-        if (err) {
-            console.error(err);
-        } else {
-            jsonRes = JSON.parse(data);
-            for (let i = 0; i < jsonRes.length; i++) {
-                if (jsonRes[i].id == id) {
-                    jsonRes.splice([i],1);
-                }
-            }
-            fs.writeFile('./db/db.json', JSON.stringifu(jsonRes), (err) =>
-            err ? console.error(err) : console.info(`\nData in database`));
-            res.json(jsonRes);
-        }})
+notes.delete('/notes/:id', (req, res)  => {
+   fs.readFile('./db/db.json', 'utf8', (err, data) => {
+    if (err) throw err;
+    let notes = JSON.parse(data);
+    const newNotes = notes.filter(note => note.id !== parseInt(req.params.id));
+    fs.writeFile('./db/dbjson', JSON.stringify(newNotes), (err, data) => {
+        res.json({msg: 'Note deleted', notes: newNotes});
+    })
+   })
 });
 
 module.exports = notes;
